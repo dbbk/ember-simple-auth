@@ -30,7 +30,7 @@
     "ember-cookies": "^0.0.13",
     "ember-fetch": "^1.4.2",
     "ember-getowner-polyfill": "^1.1.0",
-    "silent-error": "^1.0.0"
+    "silent-error": "1.0.1"
   },
   "devDependencies": {
     "body-parser": "^1.17.1",
