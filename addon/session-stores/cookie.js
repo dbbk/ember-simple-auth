@@ -231,6 +231,10 @@ export default BaseStore.extend({
   },
 
   _write(value, expiration) {
+    if (this.get('_fastboot.isFastBoot')) {
+      console.log('Skipped writing cookie in FastBoot');
+      return;
+    }
     let cookieOptions = {
       domain: this.get('cookieDomain'),
       expires: isEmpty(expiration) ? null : new Date(expiration),
