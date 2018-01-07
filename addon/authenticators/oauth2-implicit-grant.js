@@ -1,15 +1,15 @@
-import Ember from 'ember';
+import RSVP from 'rsvp';
+import { isEmpty } from '@ember/utils';
 import BaseAuthenticator from './base';
-
-const {
-  RSVP,
-  isEmpty
-} = Ember;
 
 /**
  Authenticator that conforms to OAuth 2
  ([RFC 6749](http://tools.ietf.org/html/rfc6749)), specifically the _"Implicit
  Grant Type"_.
+
+ Use {{#crossLink "OAuth2ImplicitGrantCallbackMixin"}}{{/crossLink}} in your
+ OAuth 2.0 redirect route to parse authentication parameters from location
+ hash string into an object.
 
  @class OAuth2ImplicitGrantAuthenticator
  @module ember-simple-auth/authenticators/oauth2-implicit-grant
@@ -77,9 +77,6 @@ export default BaseAuthenticator.extend({
   _validateData(data) {
     // see https://tools.ietf.org/html/rfc6749#section-4.2.2
 
-    // jscs:disable requireCamelCaseOrUpperCaseIdentifiers
-    return !isEmpty(data) &&
-      !isEmpty(data.access_token);
-    // jscs:enable requireCamelCaseOrUpperCaseIdentifiers
+    return !isEmpty(data) && !isEmpty(data.access_token);
   }
 });

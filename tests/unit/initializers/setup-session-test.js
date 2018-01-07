@@ -1,6 +1,10 @@
-/* jshint expr:true */
 import Ember from 'ember';
-import { describe, beforeEach, afterEach, it } from 'mocha';
+import {
+  describe,
+  beforeEach,
+  afterEach,
+  it
+} from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import setupSession from 'ember-simple-auth/initializers/setup-session';

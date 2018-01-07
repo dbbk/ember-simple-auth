@@ -378,7 +378,7 @@ Full Name: {{model.name}}
 ```
 
 If you log in to GitHub through the app now with the console open, you will see that you are not fully authorized. The
-page will be blank (we didn't do any realy error handling) and the console will tell you you received a
+page will be blank (we didn't do any real error handling) and the console will tell you you received a
 `401 (Unauthorized)` for an API call to `https://api.github.com/user`. This particular API uses the identity associated
 with the authorized user to return the profile for that user, which it can't do if you're not authorized. Now that we
 have evidence that we're not truly authorized, let's fix it.
@@ -408,7 +408,6 @@ We can now implement our back end token exchange service.
 ```js
 // server/mocks/token.js
 
-/*jshint node:true*/
 module.exports = function(app) {
   const express = require('express');
   const tokenRouter = express.Router();
@@ -465,7 +464,6 @@ module.exports = function(app) {
   app.use('/api/token', tokenRouter);
 };
 ```
-You may also want to add `"esversion": 6` to your `server/.jshintrc` to avoid warnings on this code.
 
 It creates a payload out of the `authorizationCode` and optionally `state` sent to it as well as the `client_id` and
 `client_secret` taken from your `.env`. It sends them to the `/login/oauth/access_token` end point,

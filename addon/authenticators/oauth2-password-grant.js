@@ -1,20 +1,18 @@
+import RSVP from 'rsvp';
+import { isEmpty } from '@ember/utils';
+import { run } from '@ember/runloop';
+import { computed } from '@ember/object';
+import { A, makeArray } from '@ember/array';
+import { warn } from '@ember/debug';
+import {
+  keys as emberKeys,
+  merge,
+  assign as emberAssign
+} from '@ember/polyfills';
 import Ember from 'ember';
 import BaseAuthenticator from './base';
 import fetch from 'fetch';
 
-const {
-  RSVP,
-  isEmpty,
-  run,
-  computed,
-  makeArray,
-  assign: emberAssign,
-  merge,
-  A,
-  testing,
-  warn,
-  keys: emberKeys
-} = Ember;
 const assign = emberAssign || merge;
 const keys = Object.keys || emberKeys; // Ember.keys deprecated in 1.13
 
@@ -103,7 +101,7 @@ export default BaseAuthenticator.extend({
     as volatile so it will actually have a different value each time it is
     accessed.__
 
-    @property refreshAccessTokens
+    @property tokenRefreshOffset
     @type Integer
     @default a random number between 5 and 10
     @public
@@ -121,7 +119,7 @@ export default BaseAuthenticator.extend({
     const clientId = this.get('clientId');
 
     if (!isEmpty(clientId)) {
-      const base64ClientId = window.btoa(clientId.concat(':'));
+      const base64ClientId = window.base64.encode(clientId.concat(':'));
       return { Authorization: `Basic ${base64ClientId}` };
     }
   }),
@@ -248,7 +246,7 @@ export default BaseAuthenticator.extend({
           resolve(response);
         });
       }, (response) => {
-        run(null, reject, useResponse ? response : response.responseJSON);
+        run(null, reject, useResponse ? response : (response.responseJSON || response.responseText));
       });
     });
   },
@@ -322,15 +320,21 @@ export default BaseAuthenticator.extend({
     if (!isEmpty(clientIdHeader)) {
       merge(options.headers, clientIdHeader);
     }
+
     return new RSVP.Promise((resolve, reject) => {
       fetch(url, options).then((response) => {
         response.text().then((text) => {
-          let json = text ? JSON.parse(text) : {};
-          if (!response.ok) {
-            response.responseJSON = json;
+          try {
+            let json = JSON.parse(text);
+            if (!response.ok) {
+              response.responseJSON = json;
+              reject(response);
+            } else {
+              resolve(json);
+            }
+          } catch (SyntaxError) {
+            response.responseText = text;
             reject(response);
-          } else {
-            resolve(json);
           }
         });
       }).catch(reject);
@@ -348,7 +352,7 @@ export default BaseAuthenticator.extend({
       if (!isEmpty(refreshToken) && !isEmpty(expiresAt) && expiresAt > now - offset) {
         run.cancel(this._refreshTokenTimeout);
         delete this._refreshTokenTimeout;
-        if (!testing) {
+        if (!Ember.testing) {
           this._refreshTokenTimeout = run.later(this, this._refreshAccessToken, expiresIn, refreshToken, expiresAt - now - offset);
         }
       }

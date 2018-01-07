@@ -1,10 +1,6 @@
-import Ember from 'ember';
+import { next } from '@ember/runloop';
 import { describe, beforeEach, it } from 'mocha';
 import { expect } from 'chai';
-
-const {
-  run: { next }
-} = Ember;
 
 export default function(options) {
   let syncExternalChanges = options.syncExternalChanges || function() {};
@@ -13,6 +9,11 @@ export default function(options) {
   // eslint-disable-next-line mocha/no-top-level-hooks
   beforeEach(function() {
     store = options.store();
+  });
+
+  // eslint-disable-next-line mocha/no-top-level-hooks
+  afterEach(function() {
+    store.clear();
   });
 
   describe('#persist', function() {

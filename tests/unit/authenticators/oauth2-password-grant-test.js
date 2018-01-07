@@ -1,10 +1,13 @@
-import Ember from 'ember';
-import { describe, beforeEach, afterEach, it } from 'mocha';
+import { tryInvoke } from '@ember/utils';
+import {
+  describe,
+  beforeEach,
+  afterEach,
+  it
+} from 'mocha';
 import { expect } from 'chai';
 import Pretender from 'pretender';
 import OAuth2PasswordGrant from 'ember-simple-auth/authenticators/oauth2-password-grant';
-
-const { tryInvoke } = Ember;
 
 describe('OAuth2PasswordGrantAuthenticator', () => {
   let authenticator;
@@ -184,12 +187,22 @@ describe('OAuth2PasswordGrantAuthenticator', () => {
         });
       });
 
-      describe('when the server returns incomplete data', function() {
-        it('fails when no access_token is present', function() {
+      describe('when the server response is missing access_token', function() {
+        it('fails with a string describing the issue', function() {
           server.post('/token', () => [200, { 'Content-Type': 'application/json' }, '{}']);
 
           return authenticator.authenticate('username', 'password').catch((error) => {
             expect(error).to.eql('access_token is missing in server response');
+          });
+        });
+      });
+
+      describe('but the response is not valid JSON', function() {
+        it('fails with the string of the response', function() {
+          server.post('/token', () => [200, { 'Content-Type': 'text/plain' }, 'Something went wrong']);
+
+          return authenticator.authenticate('username', 'password').catch((error) => {
+            expect(error).to.eql('Something went wrong');
           });
         });
       });
@@ -200,21 +213,53 @@ describe('OAuth2PasswordGrantAuthenticator', () => {
         server.post('/token', () => [400, { 'Content-Type': 'application/json', 'X-Custom-Context': 'foobar' }, '{ "error": "invalid_grant" }']);
       });
 
-      it('rejects with the correct error', function(done) {
+      it('rejects with the parsed JSON response', function(done) {
         authenticator.authenticate('username', 'password').catch((error) => {
           expect(error).to.eql({ error: 'invalid_grant' });
           done();
         });
       });
 
-      describe('when reject with response is enabled', function() {
+      describe('when rejectWithResponse is enabled', function() {
         beforeEach(function() {
           authenticator.set('rejectWithResponse', true);
         });
 
-        it('rejects with xhr object', function() {
+        it('rejects with response object containing responseJSON', function() {
           return authenticator.authenticate('username', 'password').catch((error) => {
             expect(error.responseJSON).to.eql({ error: 'invalid_grant' });
+          });
+        });
+
+        it('provides access to custom headers', function() {
+          return authenticator.authenticate('username', 'password').catch((error) => {
+            expect(error.headers.get('x-custom-context')).to.eql('foobar');
+          });
+        });
+      });
+    });
+
+    describe('when the authentication request fails without a valid response', function() {
+      beforeEach(function() {
+        server.post('/token', () => [500, { 'Content-Type': 'text/plain', 'X-Custom-Context': 'foobar' }, 'The server has failed completely.']);
+      });
+
+      it('rejects with the response body', function(done) {
+        authenticator.authenticate('username', 'password').catch((error) => {
+          expect(error).to.eql('The server has failed completely.');
+          done();
+        });
+      });
+
+      describe('when rejectWithResponse is enabled', function() {
+        beforeEach(function() {
+          authenticator.set('rejectWithResponse', true);
+        });
+
+        it('rejects with response object containing responseText', function() {
+          return authenticator.authenticate('username', 'password').catch((error) => {
+            expect(error.responseJSON).to.not.exist;
+            expect(error.responseText).to.eql('The server has failed completely.');
           });
         });
 
@@ -334,7 +379,7 @@ describe('OAuth2PasswordGrantAuthenticator', () => {
         authenticator._refreshAccessToken(12345, 'refresh token!');
       });
 
-      describe('when the server reponse includes updated expiration data', function() {
+      describe('when the server response includes updated expiration data', function() {
         beforeEach(function() {
           server.post('/token', () => [200, { 'Content-Type': 'application/json' }, '{ "access_token": "secret token 2!", "expires_in": 67890, "refresh_token": "refresh token 2!" }']);
         });

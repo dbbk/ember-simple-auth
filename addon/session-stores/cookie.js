@@ -1,20 +1,14 @@
+import RSVP from 'rsvp';
+import { computed } from '@ember/object';
+import { inject as service } from '@ember/service';
+import { later, cancel, scheduleOnce, next } from '@ember/runloop';
+import { isPresent, typeOf, isEmpty, isNone } from '@ember/utils';
+import { A } from '@ember/array';
+import { getOwner } from '@ember/application';
+import { warn } from '@ember/debug';
 import Ember from 'ember';
 import BaseStore from './base';
 import objectsAreEqual from '../utils/objects-are-equal';
-
-const {
-  RSVP,
-  computed,
-  inject: { service },
-  run: { next, scheduleOnce, cancel, later },
-  isEmpty,
-  typeOf,
-  testing,
-  isPresent,
-  A,
-  getOwner,
-  warn,
-} = Ember;
 
 const persistingProperty = function(beforeSet = function() {}) {
   return computed({
@@ -126,8 +120,12 @@ export default BaseStore.extend({
   */
   _cookieExpirationTime: null,
   cookieExpirationTime: persistingProperty(function(key, value) {
-    if (value < 90) {
-      this._warn('The recommended minimum value for `cookieExpirationTime` is 90 seconds. If your value is less than that, the cookie may expire before its expiration time is extended (expiration time is extended every 60 seconds).', false, { id: 'ember-simple-auth.cookieExpirationTime' });
+    // When nulling expiry time on purpose, we need to clear the cached value.
+    // Otherwise, `_calculateExpirationTime` will reuse it.
+    if (isNone(value)) {
+      this.get('_cookies').clear(`${this.get('cookieName')}-expiration_time`);
+    } else if (value < 90) {
+      warn('The recommended minimum value for `cookieExpirationTime` is 90 seconds. If your value is less than that, the cookie may expire before its expiration time is extended (expiration time is extended every 60 seconds).', false, { id: 'ember-simple-auth.cookieExpirationTime' });
     }
   }),
 
@@ -261,7 +259,7 @@ export default BaseStore.extend({
         this._lastData = data;
         this.trigger('sessionDataUpdated', data);
       }
-      if (!testing) {
+      if (!Ember.testing) {
         cancel(this._syncDataTimeout);
         this._syncDataTimeout = later(this, this._syncData, 500);
       }
@@ -279,7 +277,7 @@ export default BaseStore.extend({
   },
 
   _renewExpiration() {
-    if (!testing) {
+    if (!Ember.testing) {
       cancel(this._renewExpirationTimeout);
       this._renewExpirationTimeout = later(this, this._renewExpiration, 60000);
     }
@@ -299,8 +297,4 @@ export default BaseStore.extend({
       this._write(data, expiration);
     }
   },
-
-  _warn() {
-    warn(...arguments);
-  }
 });

@@ -1,4 +1,4 @@
-/* global localStorage */
+/* global sessionStorage */
 import RSVP from 'rsvp';
 
 import { computed } from '@ember/object';
@@ -8,21 +8,17 @@ import BaseStore from './base';
 import objectsAreEqual from '../utils/objects-are-equal';
 
 /**
-  Session store that persists data in the browser's `localStorage`.
+  Session store that persists data in the browser's `sessionStorage`.
 
-  __`localStorage` is not available in Safari when running in private mode. In
-  general it is better to use the
-  {{#crossLink "AdaptiveStore"}}{{/crossLink}} that automatically falls back to
-  the {{#crossLink "CookieStore"}}{{/crossLink}} when `localStorage` is not
-  available.__
+  __`sessionStorage` is not available in Safari when running in private mode.__
 
   __This session store does not work with FastBoot. In order to use Ember
   Simple Auth with FastBoot, configure the
   {{#crossLink "CookieStore"}}{{/crossLink}} as the application's session
   store.__
 
-  @class LocalStorageStore
-  @module ember-simple-auth/session-stores/local-storage
+  @class SessionStorageStore
+  @module ember-simple-auth/session-stores/session-storage
   @extends BaseStore
   @public
 */
@@ -34,7 +30,7 @@ export default BaseStore.extend({
   }),
 
   /**
-    The `localStorage` key the store persists data in.
+    The `sessionStorage` key the store persists data in.
 
     @property key
     @type String
@@ -46,20 +42,19 @@ export default BaseStore.extend({
   init() {
     this._super(...arguments);
 
-    this._boundHandler = bind(this, this._handleStorageEvent);
     if (!this.get('_isFastBoot')) {
-      window.addEventListener('storage', this._boundHandler);
+      window.addEventListener('storage', bind(this, this._handleStorageEvent));
     }
   },
 
   willDestroy() {
     if (!this.get('_isFastBoot')) {
-      window.removeEventListener('storage', this._boundHandler);
+      window.removeEventListener('storage', bind(this, this._handleStorageEvent));
     }
   },
 
   /**
-    Persists the `data` in the `localStorage`.
+    Persists the `data` in the `sessionStorage`.
 
     @method persist
     @param {Object} data The data to persist
@@ -69,35 +64,35 @@ export default BaseStore.extend({
   persist(data) {
     this._lastData = data;
     data = JSON.stringify(data || {});
-    localStorage.setItem(this.key, data);
+    sessionStorage.setItem(this.key, data);
 
     return RSVP.resolve();
   },
 
   /**
-    Returns all data currently stored in the `localStorage` as a plain object.
+    Returns all data currently stored in the `sessionStorage` as a plain object.
 
     @method restore
     @return {Ember.RSVP.Promise} A promise that resolves with the data currently persisted in the store when the data has been restored successfully and rejects otherwise.
     @public
   */
   restore() {
-    let data = localStorage.getItem(this.key);
+    let data = sessionStorage.getItem(this.key);
 
     return RSVP.resolve(JSON.parse(data) || {});
   },
 
   /**
     Clears the store by deleting the
-    {{#crossLink "LocalStorageStore/key:property"}}{{/crossLink}} from
-    `localStorage`.
+    {{#crossLink "sessionStorageStore/key:property"}}{{/crossLink}} from
+    `sessionStorage`.
 
     @method clear
     @return {Ember.RSVP.Promise} A promise that resolves when the store has been cleared successfully and rejects otherwise.
     @public
   */
   clear() {
-    localStorage.removeItem(this.key);
+    sessionStorage.removeItem(this.key);
     this._lastData = {};
 
     return RSVP.resolve();

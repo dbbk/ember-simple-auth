@@ -1,12 +1,12 @@
 import { describe } from 'mocha';
-import LocalStorage from 'ember-simple-auth/session-stores/local-storage';
+import SessionStorage from 'ember-simple-auth/session-stores/session-storage';
 import itBehavesLikeAStore from './shared/store-behavior';
 import itBehavesLikeAStorageEventHandler from './shared/storage-event-handler-behavior';
 
-describe('LocalStorageStore', function() {
+describe('SessionStorageStore', function() {
   itBehavesLikeAStore({
     store() {
-      return LocalStorage.create({
+      return SessionStorage.create({
         _isFastBoot: false
       });
     }
@@ -14,7 +14,7 @@ describe('LocalStorageStore', function() {
 
   itBehavesLikeAStorageEventHandler({
     store() {
-      return LocalStorage.create({
+      return SessionStorage.create({
         _isFastBoot: false
       });
     }
